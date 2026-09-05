@@ -48,14 +48,14 @@ const TRACKS = [
       {
         id: "gentle-breeze",
         name: "Gentle Breeze",
-        file: "audio/gentle-breeze.wav",
+        file: "audio/gentle-breeze.mp3",
         volume: 0.55,
         drift: 0.03
       },
       {
         id: "cabin-ambience",
         name: "Cabin Ambience",
-        file: "audio/cabin-room-tone.wav",
+        file: "audio/cabin-room-tone.mp3",
         volume: 0.25,
         drift: 0.03
       }
