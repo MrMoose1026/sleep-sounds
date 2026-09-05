@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <title>Sleep Sound Generator</title>
+  <meta
+    name="description"
+    content="Layered ambient soundscapes that slowly evolve as you rest."
+  />
+  <meta name="theme-color" content="#061018" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sleep Sounds" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="app-shell">
+    <section class="sleep-card">
+      <p class="eyebrow">Sleep Sound Generator</p>
+
+      <h1>Drift into something that never quite repeats.</h1>
+
+      <p class="description">
+        Multiple ambient loops play at different lengths and slowly change volume,
+        creating an evolving soundscape instead of one obvious repeating track.
+      </p>
+
+      <button
+        id="sleepButton"
+        class="sleep-button"
+        type="button"
+        aria-pressed="false"
+      >
+        Sleep
+      </button>
+
+      <p id="status" class="status" aria-live="polite">Ready</p>
+
+      <label for="soundscapeSelect">Soundscape</label>
+      <select id="soundscapeSelect">
+        <option value="rainyRoom">Rainy Room</option>
+        <option value="fireplaceCabin">Fireplace Cabin</option>
+      </select>
+
+      <div class="master-control">
+        <label for="masterVolume">Master volume</label>
+        <input
+          id="masterVolume"
+          type="range"
+          min="0"
+          max="1"
+          value="0.65"
+          step="0.01"
+        />
+      </div>
+
+      <details class="mixer" open>
+        <summary>Sound mixer</summary>
+        <div id="mixerControls" class="mixer-controls"></div>
+      </details>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="pwa-register.js"></script>
+</body>
+</html>
