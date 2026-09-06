@@ -1,4 +1,4 @@
-const CACHE_NAME = "sleep-sound-generator-v1";
+const CACHE_NAME = "sleep-sound-generator-v2";
 
 const APP_SHELL = [
   "./",

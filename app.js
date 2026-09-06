@@ -149,16 +149,10 @@ function buildMixer(tracksToShow) {
         (entry) => entry.id === track.id
       );
 
-      if (node && audioContext) {
-        const now = audioContext.currentTime;
-
-        node.gain.gain.cancelScheduledValues(now);
-        node.gain.gain.setTargetAtTime(
-          track.volume,
-          now,
-          0.4
-        );
-      }
+      if (node) {
+  node.audio.volume =
+    getEffectiveVolume(track.volume);
+}
     });
 
     wrapper.append(label, slider);
@@ -170,29 +164,31 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function clampVolume(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function getMasterLevel() {
+  return Number(masterVolume.value);
+}
+
+function getEffectiveVolume(trackVolume, variation = 1) {
+  return clampVolume(
+    trackVolume * getMasterLevel() * variation
+  );
+}
+
 function clearTrackNodes() {
   trackNodes.forEach((track) => {
     track.audio.pause();
-    track.audio.currentTime = 0;
-    track.source.disconnect();
-    track.gain.disconnect();
+    track.audio.removeAttribute("src");
+    track.audio.load();
   });
 
   trackNodes = [];
 }
 
 async function ensureAudioGraph() {
-  if (!audioContext) {
-    const AudioContextClass =
-      window.AudioContext || window.webkitAudioContext;
-
-    audioContext = new AudioContextClass();
-
-    masterGain = audioContext.createGain();
-    masterGain.gain.value = 0;
-    masterGain.connect(audioContext.destination);
-  }
-
   if (trackNodes.length > 0) return;
 
   trackNodes = selectedTracks.map((track) => {
@@ -200,18 +196,10 @@ async function ensureAudioGraph() {
 
     audio.loop = true;
     audio.preload = "auto";
-
-    const source =
-      audioContext.createMediaElementSource(audio);
-
-    const gain = audioContext.createGain();
-    gain.gain.value = track.volume;
-
-    source.connect(gain);
-    gain.connect(masterGain);
+    audio.volume = getEffectiveVolume(track.volume);
 
     /*
-      Skip an unwanted fade or silence at the end
+      Skip unwanted silence or fading at the end
       of tracks that define loopEndTrim.
     */
     audio.addEventListener("timeupdate", () => {
@@ -237,9 +225,7 @@ async function ensureAudioGraph() {
 
     return {
       ...track,
-      audio,
-      source,
-      gain
+      audio
     };
   });
 }
@@ -430,9 +416,7 @@ function beginDrift() {
   clearInterval(driftTimer);
 
   driftTimer = setInterval(() => {
-    if (!isPlaying || !audioContext) return;
-
-    const now = audioContext.currentTime;
+    if (!isPlaying) return;
 
     trackNodes.forEach((trackNode) => {
       const track = selectedTracks.find(
@@ -444,28 +428,32 @@ function beginDrift() {
       const amount =
         (Math.random() * 2 - 1) * track.drift;
 
-      const target = Math.max(
-        0.02,
-        Math.min(1, track.volume + amount)
+      const driftedVolume = clampVolume(
+        track.volume + amount
       );
 
-      trackNode.gain.gain.cancelScheduledValues(now);
-
-      trackNode.gain.gain.linearRampToValueAtTime(
-        target,
-        now + 8 + Math.random() * 8
-      );
+      trackNode.audio.volume =
+        getEffectiveVolume(driftedVolume);
     });
   }, DRIFT_INTERVAL_MS);
 }
 
 async function startSoundscape() {
   await ensureAudioGraph();
-  await audioContext.resume();
 
   stopActiveEvents();
-
   await randomizeStartingPoints();
+
+  trackNodes.forEach((trackNode) => {
+    const track = selectedTracks.find(
+      (item) => item.id === trackNode.id
+    );
+
+    if (track) {
+      trackNode.audio.volume =
+        getEffectiveVolume(track.volume);
+    }
+  });
 
   const playResults = await Promise.allSettled(
     trackNodes.map((track) => track.audio.play())
@@ -490,57 +478,29 @@ async function startSoundscape() {
 
   status.textContent = "Soundscape drifting…";
 
-  const now = audioContext.currentTime;
-
-  masterGain.gain.cancelScheduledValues(now);
-  masterGain.gain.setValueAtTime(0, now);
-
-  masterGain.gain.linearRampToValueAtTime(
-    Number(masterVolume.value),
-    now + FADE_SECONDS
-  );
-
   beginDrift();
   startRandomEvents();
 }
 
 function stopSoundscape() {
-  if (!audioContext || !isPlaying) return;
+  if (!isPlaying) return;
 
   isPlaying = false;
+
   clearInterval(driftTimer);
   cancelEventTimers();
+
+  trackNodes.forEach((track) => {
+    track.audio.pause();
+  });
+
+  stopActiveEvents();
 
   sleepButton.textContent = "Sleep";
   sleepButton.classList.remove("is-playing");
   sleepButton.setAttribute("aria-pressed", "false");
 
-  status.textContent = "Fading out…";
-
-  const now = audioContext.currentTime;
-
-  masterGain.gain.cancelScheduledValues(now);
-  masterGain.gain.setValueAtTime(
-    Math.max(masterGain.gain.value, 0),
-    now
-  );
-
-  masterGain.gain.linearRampToValueAtTime(
-    0,
-    now + FADE_SECONDS
-  );
-
- window.setTimeout(() => {
-  if (!isPlaying) {
-    trackNodes.forEach((track) => {
-      track.audio.pause();
-    });
-
-    stopActiveEvents();
-
-    status.textContent = "Ready";
-  }
-}, FADE_SECONDS * 1000 + 150);
+  status.textContent = "Ready";
 }
 
 sleepButton.addEventListener("click", async () => {
@@ -552,19 +512,16 @@ sleepButton.addEventListener("click", async () => {
 });
 
 masterVolume.addEventListener("input", () => {
-  if (!audioContext || !masterGain || !isPlaying) {
-    return;
-  }
+  trackNodes.forEach((trackNode) => {
+    const track = selectedTracks.find(
+      (item) => item.id === trackNode.id
+    );
 
-  const now = audioContext.currentTime;
+    if (!track) return;
 
-  masterGain.gain.cancelScheduledValues(now);
-
-  masterGain.gain.setTargetAtTime(
-    Number(masterVolume.value),
-    now,
-    0.35
-  );
+    trackNode.audio.volume =
+      getEffectiveVolume(track.volume);
+  });
 });
 
 buildMixer(selectedTracks);
