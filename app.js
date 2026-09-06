@@ -115,11 +115,12 @@ let isPlaying = false;
 
 soundscapeSelect.addEventListener("change", () => {
   const selectedKey = soundscapeSelect.value;
-
   const selectedSoundscape = SOUNDSCAPES[selectedKey];
-  selectedTracks = selectedSoundscape.tracks;
 
-buildMixer(selectedSoundscape.tracks);
+  clearTrackNodes();
+
+  selectedTracks = selectedSoundscape.tracks;
+  buildMixer(selectedTracks);
 });
 
 function buildMixer(tracksToShow) {
@@ -169,17 +170,30 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function clearTrackNodes() {
+  trackNodes.forEach((track) => {
+    track.audio.pause();
+    track.audio.currentTime = 0;
+    track.source.disconnect();
+    track.gain.disconnect();
+  });
+
+  trackNodes = [];
+}
+
 async function ensureAudioGraph() {
-  if (audioContext) return;
+  if (!audioContext) {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
 
-  const AudioContextClass =
-    window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContextClass();
 
-  audioContext = new AudioContextClass();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = 0;
+    masterGain.connect(audioContext.destination);
+  }
 
-  masterGain = audioContext.createGain();
-  masterGain.gain.value = 0;
-  masterGain.connect(audioContext.destination);
+  if (trackNodes.length > 0) return;
 
   trackNodes = selectedTracks.map((track) => {
     const audio = new Audio(track.file);
