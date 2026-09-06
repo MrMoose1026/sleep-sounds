@@ -41,21 +41,21 @@ const TRACKS = [
       {
         id: "fireplace",
         name: "Fireplace",
-        file: "audio/fireplace.mp3",
+        file: "audio/fireplace-crackling.mp3",
         volume: 0.75,
         drift: 0.03
       },
       {
         id: "gentle-breeze",
         name: "Gentle Breeze",
-        file: "audio/gentle-breeze.mp3",
+        file: "audio/gentle-breeze.wav",
         volume: 0.55,
         drift: 0.03
       },
       {
         id: "cabin-ambience",
         name: "Cabin Ambience",
-        file: "audio/cabin-room-tone.mp3",
+        file: "audio/cabin-room-tone.wav",
         volume: 0.25,
         drift: 0.03
       }
@@ -102,7 +102,8 @@ const masterVolume = document.getElementById("masterVolume");
 const mixerControls = document.getElementById("mixerControls");
 const soundscapeSelect =
   document.getElementById("soundscapeSelect");
-
+let selectedTracks =
+  SOUNDSCAPES[soundscapeSelect.value].tracks;
 const eventTimers = new Map();
 const activeEventNodes = new Set();
 
@@ -116,6 +117,7 @@ soundscapeSelect.addEventListener("change", () => {
   const selectedKey = soundscapeSelect.value;
 
   const selectedSoundscape = SOUNDSCAPES[selectedKey];
+  selectedTracks = selectedSoundscape.tracks;
 
 buildMixer(selectedSoundscape.tracks);
 });
@@ -179,7 +181,7 @@ async function ensureAudioGraph() {
   masterGain.gain.value = 0;
   masterGain.connect(audioContext.destination);
 
-  trackNodes = TRACKS.map((track) => {
+  trackNodes = selectedTracks.map((track) => {
     const audio = new Audio(track.file);
 
     audio.loop = true;
@@ -419,7 +421,7 @@ function beginDrift() {
     const now = audioContext.currentTime;
 
     trackNodes.forEach((trackNode) => {
-      const track = TRACKS.find(
+      const track = selectedTracks.find(
         (item) => item.id === trackNode.id
       );
 
@@ -551,4 +553,4 @@ masterVolume.addEventListener("input", () => {
   );
 });
 
-buildMixer(SOUNDSCAPES.rainyRoom.tracks);
+buildMixer(selectedTracks);
