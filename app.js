@@ -60,7 +60,59 @@ const TRACKS = [
         drift: 0.03
       }
     ]
-  }
+  },
+  gentleWaves: {
+  name: "Gentle Waves",
+  tracks: [
+    {
+      id: "gentle-waves",
+      name: "Gentle Waves",
+      file: "audio/gentle-waves.wav",
+      volume: 0.55,
+      drift: 0.03
+    },
+    {
+      id: "distant-surf",
+      name: "Distant Surf",
+      file: "audio/distant-surf.mp3",
+      volume: 0.35,
+      drift: 0.03
+    },
+    {
+      id: "sea-breeze",
+      name: "Sea Breeze",
+      file: "audio/sea-breeze.wav",
+      volume: 0.25,
+      drift: 0.03
+    }
+  ]
+},
+deepSpace: {
+  name: "Deep Space",
+  tracks: [
+    {
+      id: "deep-space-hum",
+      name: "Deep Space Hum",
+      file: "audio/deep-space-hum.mp3",
+      volume: 0.75,
+      drift: 0.02
+    },
+    {
+      id: "starship-ambience",
+      name: "Distant Starship",
+      file: "audio/starship-ambience.mp3",
+      volume: 0.18,
+      drift: 0.02
+    },
+    {
+      id: "cosmic-air",
+      name: "Cosmic Air",
+      file: "audio/cosmic-airs.mp3",
+      volume: 0.40,
+      drift: 0.05
+    }
+  ]
+}
 };
 
 const RANDOM_EVENTS = [
