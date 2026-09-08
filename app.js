@@ -202,6 +202,9 @@ function buildMixer(tracksToShow) {
       );
 
       if (node) {
+  node.audio.muted =
+    track.volume === 0 || getMasterLevel() === 0;
+
   node.audio.volume =
     getEffectiveVolume(track.volume);
 }
@@ -574,9 +577,9 @@ masterVolume.addEventListener("input", () => {
       (item) => item.id === trackNode.id
     );
 
-    if (!track) return;
-    trackNode.audio.muted = getMasterLevel() === 0;
-
+    trackNode.audio.muted =
+  track.volume === 0 || getMasterLevel() === 0;
+  
     trackNode.audio.volume =
       getEffectiveVolume(track.volume);
   });
