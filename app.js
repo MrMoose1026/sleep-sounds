@@ -575,6 +575,7 @@ masterVolume.addEventListener("input", () => {
     );
 
     if (!track) return;
+    trackNode.audio.muted = getMasterLevel() === 0;
 
     trackNode.audio.volume =
       getEffectiveVolume(track.volume);
