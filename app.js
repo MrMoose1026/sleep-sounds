@@ -477,6 +477,11 @@ function beginDrift() {
 
       if (!track) return;
 
+      if (track.volume === 0) {
+  trackNode.audio.volume = 0;
+  return;
+}
+
       const amount =
         (Math.random() * 2 - 1) * track.drift;
 
