@@ -343,6 +343,17 @@ async function ensureAudioGraph() {
 
       audio.currentTime = 0;
 
+      if (isPlaying && audio.paused) {
+        try {
+          await audio.play();
+        } catch (error) {
+          console.error(
+            `Could not resume ${track.name} loop:`,
+            error
+          );
+        }
+      }
+
       await fadeAudioVolume(
         audio,
         getEffectiveVolume(track.volume),
@@ -705,3 +716,26 @@ masterVolume.addEventListener("input", () => {
 });
 
 buildMixer(selectedTracks);
+
+const splashScreen =
+  document.getElementById("splashScreen");
+
+if (splashScreen) {
+  window.setTimeout(() => {
+    splashScreen.classList.add("splash-hidden");
+  }, 2200);
+
+  splashScreen.addEventListener(
+    "transitionend",
+    () => {
+      if (
+        splashScreen.classList.contains(
+          "splash-hidden"
+        )
+      ) {
+        splashScreen.remove();
+      }
+    },
+    { once: true }
+  );
+}
