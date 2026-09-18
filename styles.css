@@ -115,3 +115,78 @@ input[type="range"] { width: 100%; }
   gap: 18px;
   margin-top: 20px;
 }
+
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(30, 79, 121, 0.24),
+      transparent 48%
+    ),
+    #020814;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 900ms ease,
+    visibility 900ms ease;
+}
+
+.splash-screen.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash-mark {
+  position: relative;
+  width: min(82vw, 420px);
+  aspect-ratio: 1 / 1;
+}
+
+.splash-logo {
+  position: absolute;
+  width: 58%;
+  left: 21%;
+  top: 20%;
+  filter:
+    drop-shadow(0 0 16px rgba(93, 181, 255, 0.55))
+    drop-shadow(0 0 32px rgba(49, 125, 255, 0.24));
+}
+
+.splash-word {
+  position: absolute;
+  color: #a9d9ff;
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 0 14px rgba(104, 187, 255, 0.55);
+}
+
+.splash-sleep {
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(2rem, 9vw, 3.5rem);
+}
+
+.splash-softly {
+  top: 43%;
+  right: -2%;
+  font-size: clamp(1.8rem, 8vw, 3.1rem);
+}
+
+.splash-sooner {
+  bottom: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(2rem, 9vw, 3.5rem);
+}
