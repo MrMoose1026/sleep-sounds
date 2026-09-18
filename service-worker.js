@@ -1,4 +1,4 @@
-const CACHE_NAME = "sleep-sound-generator-v2.1.2";
+const CACHE_NAME = "sleep-sound-generator-v2.2.0";
 
 const APP_SHELL = [
   "./",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./app.js",
   "./pwa-register.js",
   "./manifest.webmanifest",
+  "./sleep.png",
   "./icons/favicon-32.png",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
