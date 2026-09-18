@@ -3,7 +3,7 @@ const TRACKS = [
     id: "rain-base",
     name: "Rain",
     file: "audio/rain-base.wav",
-    volume: 0.75,
+    volume: 0.45,
     drift: 0.04,
     loopEndTrim: 1.1
   },
@@ -43,7 +43,8 @@ const TRACKS = [
         name: "Fireplace",
         file: "audio/fireplace-crackling.mp3",
         volume: 0.75,
-        drift: 0.03
+        drift: 0.03,
+        loopFadeSeconds: 1.5
       },
       {
         id: "gentle-breeze",
@@ -63,6 +64,7 @@ const TRACKS = [
   },
   gentleWaves: {
   name: "Gentle Waves",
+  fadeSeconds: 4,
   tracks: [
     {
       id: "gentle-waves",
@@ -233,6 +235,50 @@ function getEffectiveVolume(trackVolume, variation = 1) {
   );
 }
 
+function fadeAudioVolume(audio, targetVolume, seconds) {
+  const durationMs = Math.max(0, seconds * 1000);
+  const startVolume = audio.volume;
+  const startedAt = performance.now();
+
+  if (audio._volumeFadeFrame) {
+    cancelAnimationFrame(audio._volumeFadeFrame);
+  }
+
+  if (durationMs === 0) {
+    audio.volume = clampVolume(targetVolume);
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const step = (now) => {
+      const progress = Math.min(
+        1,
+        (now - startedAt) / durationMs
+      );
+
+      audio.volume = clampVolume(
+        startVolume +
+        (targetVolume - startVolume) * progress
+      );
+
+      if (progress < 1) {
+        audio._volumeFadeFrame =
+          requestAnimationFrame(step);
+      } else {
+        audio._volumeFadeFrame = null;
+        resolve();
+      }
+    };
+
+    audio._volumeFadeFrame =
+      requestAnimationFrame(step);
+  });
+}
+
+function getSelectedSoundscape() {
+  return SOUNDSCAPES[soundscapeSelect.value];
+}
+
 function clearTrackNodes() {
   trackNodes.forEach((track) => {
     track.audio.pause();
@@ -249,28 +295,61 @@ async function ensureAudioGraph() {
   trackNodes = selectedTracks.map((track) => {
     const audio = new Audio(track.file);
 
-    audio.loop = true;
+    const loopFadeSeconds =
+      Number(track.loopFadeSeconds) || 0;
+
+    audio.loop = loopFadeSeconds <= 0;
     audio.preload = "auto";
     audio.volume = getEffectiveVolume(track.volume);
 
+    let isLoopFading = false;
+
     /*
-      Skip unwanted silence or fading at the end
-      of tracks that define loopEndTrim.
+      Tracks with loopEndTrim skip unwanted material.
+      Tracks with loopFadeSeconds fade down before the
+      seam, jump to the beginning, then fade back in.
     */
-    audio.addEventListener("timeupdate", () => {
+    audio.addEventListener("timeupdate", async () => {
       const trim = Number(track.loopEndTrim) || 0;
 
       if (
-        trim <= 0 ||
+        trim > 0 &&
+        Number.isFinite(audio.duration) &&
+        audio.duration > trim &&
+        audio.currentTime >= audio.duration - trim
+      ) {
+        audio.currentTime = 0;
+        return;
+      }
+
+      if (
+        loopFadeSeconds <= 0 ||
+        isLoopFading ||
         !Number.isFinite(audio.duration) ||
-        audio.duration <= trim
+        audio.duration <= loopFadeSeconds * 2 ||
+        audio.currentTime <
+          audio.duration - loopFadeSeconds
       ) {
         return;
       }
 
-      if (audio.currentTime >= audio.duration - trim) {
-        audio.currentTime = 0;
-      }
+      isLoopFading = true;
+
+      await fadeAudioVolume(
+        audio,
+        0,
+        loopFadeSeconds
+      );
+
+      audio.currentTime = 0;
+
+      await fadeAudioVolume(
+        audio,
+        getEffectiveVolume(track.volume),
+        loopFadeSeconds
+      );
+
+      isLoopFading = false;
     });
 
     audio.addEventListener("error", () => {
@@ -504,6 +583,9 @@ async function startSoundscape() {
   stopActiveEvents();
   await randomizeStartingPoints();
 
+  const sceneFadeSeconds =
+    Number(getSelectedSoundscape().fadeSeconds) || 0;
+
   trackNodes.forEach((trackNode) => {
     const track = selectedTracks.find(
       (item) => item.id === trackNode.id
@@ -511,7 +593,9 @@ async function startSoundscape() {
 
     if (track) {
       trackNode.audio.volume =
-        getEffectiveVolume(track.volume);
+        sceneFadeSeconds > 0
+          ? 0
+          : getEffectiveVolume(track.volume);
     }
   });
 
@@ -532,6 +616,22 @@ async function startSoundscape() {
 
   isPlaying = true;
 
+  if (sceneFadeSeconds > 0) {
+    await Promise.all(
+      trackNodes.map((trackNode) => {
+        const track = selectedTracks.find(
+          (item) => item.id === trackNode.id
+        );
+
+        return fadeAudioVolume(
+          trackNode.audio,
+          getEffectiveVolume(track.volume),
+          sceneFadeSeconds
+        );
+      })
+    );
+  }
+
   sleepButton.textContent = "Stop";
   sleepButton.classList.add("is-playing");
   sleepButton.setAttribute("aria-pressed", "true");
@@ -542,13 +642,31 @@ async function startSoundscape() {
   startRandomEvents();
 }
 
-function stopSoundscape() {
+async function stopSoundscape() {
   if (!isPlaying) return;
 
   isPlaying = false;
 
   clearInterval(driftTimer);
   cancelEventTimers();
+
+  const sceneFadeSeconds =
+    Number(getSelectedSoundscape().fadeSeconds) || 0;
+
+  if (sceneFadeSeconds > 0) {
+    sleepButton.textContent = "Fading…";
+    sleepButton.disabled = true;
+
+    await Promise.all(
+      trackNodes.map((track) =>
+        fadeAudioVolume(
+          track.audio,
+          0,
+          sceneFadeSeconds
+        )
+      )
+    );
+  }
 
   trackNodes.forEach((track) => {
     track.audio.pause();
@@ -557,6 +675,7 @@ function stopSoundscape() {
   stopActiveEvents();
 
   sleepButton.textContent = "Sleep";
+  sleepButton.disabled = false;
   sleepButton.classList.remove("is-playing");
   sleepButton.setAttribute("aria-pressed", "false");
 
@@ -565,7 +684,7 @@ function stopSoundscape() {
 
 sleepButton.addEventListener("click", async () => {
   if (isPlaying) {
-    stopSoundscape();
+    await stopSoundscape();
   } else {
     await startSoundscape();
   }
